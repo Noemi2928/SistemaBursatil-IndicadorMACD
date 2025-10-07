@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MACD</title>
+</head>
+<body>
+  <h2>Resultado del MACD</h2>
+
+{% for msg in messages %}
+<p>{{ msg }}</p>
+{% endfor %}
+
+{% if macd_data %}
+  {% for symbol, df in macd_data.items() %}
+    <h3>{{ symbol }} - Estado: {{ macd_status[symbol] }}</h3>
+    <table border="1">
+      <tr>
+        {% for col in df.columns %}
+          <th>{{ col }}</th>
+        {% endfor %}
+      </tr>
+      {% for index, row in df.iterrows() %}
+      <tr>
+        {% for col in df.columns %}
+          <td>{{ row[col] }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </table>
+  {% endfor %}
+{% endif %}
+
+<form method="GET" action="/">
+    <button type="submit">Volver al inicio</button>
+</form>
+
+</body>
+</html>

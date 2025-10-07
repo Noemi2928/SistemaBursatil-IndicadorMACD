@@ -3,10 +3,51 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hello World</title>
+    <title>Home</title>
   </head>
 
   <body>
-    <h1>Hello World</h1>
+    <h1>Cargar símbolos bursátiles</h1>
+    <form method="post" action="/result" enctype="multipart/form-data">
+        <!-- Lista manual -->
+        <label for="manual_symbols">Ingresar símbolos manualmente (separados por coma):</label>
+        <textarea name="manual_symbols" id="manual_symbols" placeholder="AAPL, MSFT, TSLA"></textarea>
+
+        <hr>
+
+        <!-- Archivo Excel -->
+        <label for="excel_file">Subir archivo Excel (.xlsx):</label>
+        <input type="file" name="excel_file" id="excel_file" accept=".xlsx">
+        <br>
+        <label for="column_name">Nombre de la columna que contiene los símbolos:</label>
+        <input type="text" name="column_name" id="column_name" placeholder="Ej: Símbolo">
+
+        <hr>
+
+        <button type="submit">Cargar y Validar</button>
+    </form>
+
   </body>
+
+  <script>
+    const manualInput = document.getElementById('manual_symbols');
+    const excelFile = document.getElementById('excel_file');
+    
+    manualInput.addEventListener('input', () => {
+        if (manualInput.value.trim().length > 0) {
+            excelFile.disabled = true;
+        } else {
+            excelFile.disabled = false;
+        }
+    });
+    
+    excelFile.addEventListener('change', () => {
+        if (excelFile.files.length > 0) {
+            manualInput.disabled = true;
+        } else {
+            manualInput.disabled = false;
+        }
+    });
+    </script>    
+
 </html>

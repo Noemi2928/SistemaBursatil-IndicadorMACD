@@ -4,3 +4,6 @@ autopep8
 
 # App
 flask
+pandas
+openpyxl    # necesario para leer archivos Excel .xlsx
+yfinance    # si luego vas a usar datos bursátiles desde Yahoo Finance
