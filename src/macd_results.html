@@ -1,40 +1,138 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MACD</title>
+    <title>Resultado del MACD</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #999;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        /* Colores según señal */
+        tr[data-signal="COMPRA"] {
+            background-color: #d4edda; /* verde claro */
+        }
+
+        tr[data-signal="VENTA"] {
+            background-color: #f8d7da; /* rojo claro */
+        }
+
+        tr[data-signal="NULO"] {
+            background-color: #e2e3e5; /* gris claro */
+        }
+
+        select, button {
+            padding: 5px 10px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+
+        form {
+            margin-bottom: 15px;
+        }
+    </style>
 </head>
 <body>
-  <h2>Resultado del MACD</h2>
 
+<h2>Resultado del MACD</h2>
+
+<!-- Mensajes opcionales -->
 {% for msg in messages %}
 <p>{{ msg }}</p>
 {% endfor %}
 
-{% if macd_data %}
-  {% for symbol, df in macd_data.items() %}
-    <h3>{{ symbol }} - Estado: {{ macd_status[symbol] }}</h3>
-    <table border="1">
-      <tr>
-        {% for col in df.columns %}
-          <th>{{ col }}</th>
-        {% endfor %}
-      </tr>
-      {% for index, row in df.iterrows() %}
-      <tr>
-        {% for col in df.columns %}
-          <td>{{ row[col] }}</td>
-        {% endfor %}
-      </tr>
-      {% endfor %}
-    </table>
-  {% endfor %}
-{% endif %}
+<!-- Selector de filtrado -->
+<label for="signal_filter">Filtrar por tipo de señal:</label>
+<select name="signal_filter" id="signal_filter">
+    <option value="TODO">TODO</option>
+    <option value="COMPRA">COMPRA</option>
+    <option value="VENTA">VENTA</option>
+    <option value="NULO">NULO</option>
+</select>
 
+<!-- Tabla de resultados -->
+<table id="results_table">
+    <thead>
+        <tr>
+            <th>Símbolo</th>
+            <th>Estado</th>
+            <th>Señal</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for symbol, data in results.items() %}
+        <tr class="signal-row" data-signal="{{ data.señal }}">
+            <td>{{ symbol }}</td>
+            <td>{{ data.estado }}</td>
+            <td>{{ data.señal }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<!-- Botón para volver al inicio -->
 <form method="GET" action="/">
     <button type="submit">Volver al inicio</button>
 </form>
+
+<!-- Botón para exportar resultados -->
+<form method="POST" action="/export_excel">
+  <!-- Campo oculto para pasar resultados en JSON -->
+  <input type="hidden" name="results_json" id="results_json">
+  <button type="submit">Exportar a Excel</button>
+</form>
+
+<!-- Script de filtrado client-side -->
+<script>
+const filterSelect = document.getElementById("signal_filter");
+const tableBody = document.getElementById("results_table").getElementsByTagName("tbody")[0];
+
+filterSelect.addEventListener("change", () => {
+    const selected = filterSelect.value;
+
+    for (let row of tableBody.rows) {
+        const signal = row.getAttribute("data-signal");
+        if (selected === "TODO" || signal === selected) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    }
+});
+
+// Convertir el diccionario de resultados a JSON antes de enviar
+const results = {};
+  document.querySelectorAll("#results_table tbody tr").forEach(row => {
+      const symbol = row.cells[0].innerText;
+      const estado = row.cells[1].innerText;
+      const señal = row.cells[2].innerText;
+      results[symbol] = { estado: estado, señal: señal };
+  });
+
+  const resultsInput = document.getElementById("results_json");
+  resultsInput.value = JSON.stringify(results);
+</script>
 
 </body>
 </html>

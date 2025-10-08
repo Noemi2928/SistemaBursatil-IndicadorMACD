@@ -20,16 +20,7 @@
     {% endfor %}
   </ul>
   {% endif %}
-
-  {% if status_symbols %}
-  <h3>Estado de descarga:</h3>
-  <ul>
-    {% for s, status in status_symbols.items() %}
-      <li>{{ s }}: {{ status }}</li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-
+  
   <form method="POST" action="/result">
       {% if symbols %}
           <input type="hidden" name="manual_symbols" value="{{ request.form.get('manual_symbols', '') }}">

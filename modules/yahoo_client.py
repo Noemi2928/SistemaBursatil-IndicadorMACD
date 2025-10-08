@@ -70,6 +70,11 @@ class YahooFinanceClient:
                 # FILTRO: eliminar filas con Close vacío (día actual si no cerró)
                 df = df[df["Close"].notna()]
 
+                # Excluir el día actual (si aparece en los datos)
+                today = pd.Timestamp.now().normalize()
+                df = df[df.index < today]
+
+
                 # Si todo va bien, guardamos los datos y estado OK
                 self.raw_data[symbol] = df
                 self.symbols_status[symbol] = "OK"

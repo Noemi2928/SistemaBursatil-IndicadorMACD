@@ -9,8 +9,12 @@ class ErrorManager:
             "VALIDATION_SYMBOLS": "Algunos símbolos contienen caracteres inválidos. Solo se permiten letras (A-Z).",
             "VALIDATION_TOO_MANY": "La lista contiene más de 20 símbolos. Se truncará a los primeros 20.",
             "VALIDATION_EMPTY": "No hay símbolos válidos después de las validaciones.",
-            "UNKNOWN": "Ocurrió un error desconocido. Contacte al soporte técnico."
+            "UNKNOWN": "Ocurrió un error desconocido. Contacte al soporte técnico.",
+            "EXPORT_EMPTY": "No hay resultados para exportar.",
+            "EXPORT_PERMISSION": "No se puede escribir el archivo '{filename}'. Verifique que no esté abierto o que tenga permisos.",
+            "EXPORT_UNKNOWN": "Ocurrió un error al exportar el archivo Excel: {error}"
         }
+
 
     def get_message(self, code: str, **kwargs) -> str:
         message = self.error_messages.get(code, self.error_messages["UNKNOWN"])

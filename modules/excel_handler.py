@@ -32,3 +32,31 @@ class ExcelHandler:
             message = self.error_manager.get_message("EXCEL_TRUNCATE")
 
         return symbols, message
+
+    def export_results(self, results: dict, filename: str = "resultados.xlsx") -> tuple[bool, str | None]:
+        """
+        Exporta los resultados a un archivo Excel usando ErrorManager para los mensajes.
+        results: { "AAPL": {"estado": "OK", "señal": "COMPRA"}, ... }
+        filename: nombre del archivo de salida
+        Retorna: (True, None) si tuvo éxito, (False, mensaje de error) si falló.
+        """
+        if not results:
+            message = self.error_manager.get_message("EXPORT_EMPTY")
+            return False, message
+
+        try:
+            # Convertir el diccionario en DataFrame
+            df = pd.DataFrame.from_dict(results, orient="index")
+            df.index.name = "Símbolo"
+
+            # Guardar en Excel
+            df.to_excel(filename)
+            return True, None
+
+        except PermissionError:
+            message = self.error_manager.get_message("EXPORT_PERMISSION", filename=filename)
+            return False, message
+
+        except Exception as e:
+            message = self.error_manager.get_message("EXPORT_UNKNOWN", error=str(e))
+            return False, message
