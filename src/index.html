@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Home</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  </head>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/lucro.ico') }}">
+</head>
 
-  <body>
+<body>
     <h1>Análisis con MACD</h1>
     <h2>Cargar símbolos bursátiles</h2>
 
@@ -20,7 +22,7 @@
                     <textarea name="manual_symbols" id="manual_symbols" placeholder="AAPL, MSFT, TSLA"></textarea>
                 </div>
             </div>
-            
+
             <hr>
             <!-- Sección de archivo Excel -->
             <div class="section" id="excelSection">
@@ -32,12 +34,12 @@
                 <div class="column-name-wrapper">
                     <label for="column_name">Nombre de la columna que contiene los símbolos:</label>
                     <input type="text" name="column_name" id="column_name" placeholder="Ej: Símbolo">
-            </div>
-            <hr>
-            <!-- Botón de carga/validación -->
-            <div class="section">
-                <button type="submit">Cargar lista</button>
-            </div>
+                </div>
+                <hr>
+                <!-- Botón de carga/validación -->
+                <div class="section">
+                    <button type="submit">Cargar lista</button>
+                </div>
         </form>
     </div>
 
@@ -57,9 +59,9 @@
             <button id="cancelBtn">Volver atrás</button>
         </div>
     </div>
-  </body>
+</body>
 
-  <script>
+<script>
     const manualInput = document.getElementById('manual_symbols');
     const excelFile = document.getElementById('excel_file');
     const mainForm = document.getElementById('mainForm');
@@ -161,22 +163,22 @@
     };
 
     // Cerrar modal si se hace click fuera del contenido
-    window.onclick = function(event) {
+    window.onclick = function (event) {
         if (event.target == modal) {
             modal.style.display = 'none';
         }
     };
-    
+
     const excelInput = document.getElementById('excel_file');
     const columnInput = document.getElementById('column_name');
     const fileNameDisplay = document.getElementById('fileNameDisplay');
-    
+
     excelInput.addEventListener('change', () => {
         if (excelInput.files.length > 0) {
             fileNameDisplay.textContent = excelInput.files[0].name;
             columnInput.required = true; // obligatorio si hay archivo
-            columnInput.oninvalid = function() {
-            this.setCustomValidity('Por favor, ingrese el nombre de la columna que contiene los símbolos');
+            columnInput.oninvalid = function () {
+                this.setCustomValidity('Por favor, ingrese el nombre de la columna que contiene los símbolos');
             }
         } else {
             fileNameDisplay.textContent = 'Ningún archivo seleccionado';
@@ -190,6 +192,6 @@
     });
 
 </script>
-    
+
 
 </html>

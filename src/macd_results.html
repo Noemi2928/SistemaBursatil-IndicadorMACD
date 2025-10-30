@@ -1,103 +1,106 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Resultado del MACD</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/lucro.ico') }}">
 </head>
+
 <body>
     {% if messages %}
     <div id="errorBox" class="error-box">
         <div class="error-content">
             {% for msg in messages %}
             <p>{{ msg }}</p>
-        {% endfor %}
-        <div class="error-actions">
-            <button onclick="retryAnalysis()">Reintentar</button>
-            <button onclick="window.location.href='/'">Cancelar</button>
-        </div>
+            {% endfor %}
+            <div class="error-actions">
+                <button onclick="retryAnalysis()">Reintentar</button>
+                <button onclick="window.location.href='/'">Cancelar</button>
+            </div>
         </div>
     </div>
     {% else %}
 
-<h1>Resultados del Análisis</h1>
-<h2>Clasificación de señales</h2>
+    <h1>Resultados del Análisis</h1>
+    <h2>Clasificación de señales</h2>
 
-<!-- Selector de filtrado -->
-    
+    <!-- Selector de filtrado -->
+
     <div class="signal-filter-container">
         <div>
             <label for="signal_filter">Filtrar por tipo de señal:</label>
-        <select name="signal_filter" id="signal_filter">
-            <option value="TODO">TODO</option>
-            <option value="COMPRA">COMPRA</option>
-            <option value="VENTA">VENTA</option>
-            <option value="NULO">NULO</option>
-        </select>
+            <select name="signal_filter" id="signal_filter">
+                <option value="TODO">TODO</option>
+                <option value="COMPRA">COMPRA</option>
+                <option value="VENTA">VENTA</option>
+                <option value="NULO">NULO</option>
+            </select>
         </div>
         <div class="left-buttons">
             <!-- Botón para volver al inicio -->
             <form method="GET" action="/">
                 <button type="submit">Volver al inicio</button>
             </form>
-        
+
             <!-- Botón para exportar resultados -->
             <form method="POST" action="/export_excel">
-            <input type="hidden" name="results_json" id="results_json">
-            <button type="submit">Exportar a Excel</button>
+                <input type="hidden" name="results_json" id="results_json">
+                <button type="submit">Exportar a Excel</button>
             </form>
         </div>
     </div>
 
-<!-- Tabla de resultados -->
-<table id="results_table">
-    <thead>
-        <tr>
-            <th>Símbolo</th>
-            <th>Estado</th>
-            <th>Señal</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for symbol, data in results.items() %}
-        <tr class="signal-row" data-signal="{{ data.señal }}">
-            <td>{{ symbol }}</td>
-            <td>{{ data.estado }}</td>
-            <td>{{ data.señal }}</td>
-        </tr>
-    {% endfor %}
-    <tr id="noMatchesRow" style="display:none;">
-        <td colspan="3" style="text-align: center; font-style: italic; color: grey;">
-            No hay coincidencias para este filtro.
-        </td>
-    </tr>
-    </tbody>
-</table>
+    <!-- Tabla de resultados -->
+    <table id="results_table">
+        <thead>
+            <tr>
+                <th>Símbolo</th>
+                <th>Estado</th>
+                <th>Señal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for symbol, data in results.items() %}
+            <tr class="signal-row" data-signal="{{ data.señal }}">
+                <td>{{ symbol }}</td>
+                <td>{{ data.estado }}</td>
+                <td>{{ data.señal }}</td>
+            </tr>
+            {% endfor %}
+            <tr id="noMatchesRow" style="display:none;">
+                <td colspan="3" style="text-align: center; font-style: italic; color: grey;">
+                    No hay coincidencias para este filtro.
+                </td>
+            </tr>
+        </tbody>
+    </table>
 
-<!-- Modal de alerta -->
-<div id="noResultsModal" class="modal">
-  <div class="modal-content">
-    <span class="close" id="modalClose">&times;</span>
-    <p>No hay resultados visibles para exportar.</p>
-  </div>
-</div>
+    <!-- Modal de alerta -->
+    <div id="noResultsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="modalClose">&times;</span>
+            <p>No hay resultados visibles para exportar.</p>
+        </div>
+    </div>
 
-{% endif %}
+    {% endif %}
 </body>
 <script>
     const filterSelect = document.getElementById("signal_filter");
     const tableBody = document.getElementById("results_table").getElementsByTagName("tbody")[0];
     const resultsForm = document.querySelector("form[action='/export_excel']");
     const resultsInput = document.getElementById("results_json");
-    
+
     const modal = document.getElementById("noResultsModal");
     const modalClose = document.getElementById("modalClose");
-    
+
     // Filtrado de la tabla
     filterSelect.addEventListener("change", () => {
         const selected = filterSelect.value;
         let visibleCount = 0;
-    
+
         // Recorremos solo las filas de señales
         for (let row of tableBody.querySelectorAll(".signal-row")) {
             const signal = row.getAttribute("data-signal");
@@ -105,16 +108,16 @@
             row.style.display = match ? "" : "none";
             if (match) visibleCount++;
         }
-    
+
         // Mostrar u ocultar el mensaje de "sin coincidencias"
         const noMatchesRow = document.getElementById("noMatchesRow");
         noMatchesRow.style.display = (visibleCount === 0) ? "" : "none";
     });
-    
+
     // Exportación
     resultsForm.addEventListener("submit", (e) => {
         const visibleResults = {};
-    
+
         // Solo incluir filas visibles (no ocultas)
         for (let row of tableBody.querySelectorAll(".signal-row")) {
             if (row.style.display !== "none") {
@@ -124,32 +127,32 @@
                 visibleResults[symbol] = { estado: estado, señal: señal };
             }
         }
-    
+
         resultsInput.value = JSON.stringify(visibleResults);
-    
+
         // Si no hay resultados visibles, mostrar modal y cancelar exportación
         if (Object.keys(visibleResults).length === 0) {
             e.preventDefault();
             modal.style.display = "flex";
         }
     });
-    
+
     // Cerrar modal al hacer clic en X
     modalClose.onclick = () => {
         modal.style.display = "none";
     };
-    
+
     // Cerrar modal al hacer clic fuera del contenido
     window.onclick = (event) => {
         if (event.target == modal) {
             modal.style.display = "none";
         }
     };
-    
+
     function retryAnalysis() {
         // Reintenta la última solicitud (redirige a la página anterior)
         history.back();
     }
-    </script>
-    
+</script>
+
 </html>

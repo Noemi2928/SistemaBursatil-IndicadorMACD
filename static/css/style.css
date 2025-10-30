@@ -245,16 +245,6 @@ button:hover, .upload-button:hover {
     padding: 5px;
 }
 
-/*.error-box {
-    background-color: #ffe6e6;
-    border: 1px solid #ff7b7b;
-    color: #b30000;
-    padding: 15px;
-    border-radius: 10px;
-    margin: 20px 0;
-    text-align: center;
-}*/
-
 .error-box {
     position: fixed;
     top: 0;
@@ -283,5 +273,4 @@ button:hover, .upload-button:hover {
 
 .error-actions button{
     font-size: 20px;
-
 }
