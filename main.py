@@ -13,7 +13,7 @@ import json
 # Indicar a Flask dónde están las plantillas
 app = Flask(__name__, template_folder="src")
 
-# Instancias de gestores (iniciales)
+# Instancias de gestores
 error_manager = ErrorManager()
 excel_handler = ExcelHandler(error_manager)
 symbols_manager = SymbolsManager(error_manager)
@@ -23,118 +23,107 @@ classifier = MACDSignalClassifier()
 results_manager = AnalysisResultsManager()
 
 # ------------------------------
-# Ruta de la página inicial (index)
+# Función unificada para extraer y validar símbolos
+# ------------------------------
+def extract_and_validate_symbols(form, files):
+    manual_input = form.get("manual_symbols", "").strip()
+    excel_file = files.get("excel_file")
+    column_name = form.get("column_name", "").strip()
+    messages = []
+    symbols = []
+    truncate = False
+
+    # Solo puede haber manual o Excel, nunca ambos
+    if manual_input and (not excel_file or excel_file.filename == ''):
+        symbols = [s.strip().upper() for s in manual_input.split(",") if s.strip()]
+        truncate = False
+    elif excel_file and excel_file.filename != '' and column_name:
+        symbols, msg_excel = excel_handler.load_symbols(excel_file, column_name)
+        truncate = True
+        if msg_excel:
+            messages.append(msg_excel)
+    else:
+        messages.append("Debe ingresar manualmente los símbolos o subir un archivo Excel válido.")
+
+    # Validación final con SymbolsManager
+    if symbols:
+        symbols_manager.validate_symbols_from_list(symbols, truncate=truncate)
+        messages.extend(symbols_manager.get_messages())
+        symbols = symbols_manager.get_valid_symbols()
+
+    return symbols, messages
+
+# ------------------------------
+# Ruta de la página inicial
 # ------------------------------
 @app.route("/", methods=["GET"])
 def index():
     global error_manager, excel_handler, symbols_manager
-
-    # Reasignar solo los gestores que guardan datos temporales
+    # Reasignar gestores que guardan datos temporales
     error_manager = ErrorManager()
     excel_handler = ExcelHandler(error_manager)
     symbols_manager = SymbolsManager(error_manager)
-    
-    # Mostrar el formulario
     return render_template("index.html")
 
 # ------------------------------
-# Ruta que procesa la carga de símbolos
+# Validar símbolos (para el modal)
+# ------------------------------
+@app.route("/validate_symbols", methods=["POST"])
+def validate_symbols():
+    symbols, messages = extract_and_validate_symbols(request.form, request.files)
+    return jsonify({
+        "messages": messages,
+        "symbols": symbols
+    })
+
+# ------------------------------
+# Procesar descarga y cálculo de MACD
 # ------------------------------
 @app.route("/result", methods=["POST"])
 def result():
+    # Leer los símbolos que vienen del modal (form oculto)
+    final_symbols_json = request.form.get("final_symbols_json")
+    if not final_symbols_json:
+        return "No se recibieron símbolos para procesar.", 400
+
+    final_symbols = json.loads(final_symbols_json)
     messages = []
-    final_symbols = []
 
-    # Obtener symbols y mensajes iniciales
-    symbols, initial_msgs = get_symbols()
-    messages.extend(initial_msgs)
+    if not final_symbols:
+        messages.append("No hay símbolos válidos para procesar.")
+        return render_template("macd_results.html", results={}, messages=messages)
 
-    # --- INICIO: fallback para símbolos cargados desde Excel ---
-    if not symbols:
-        excel_symbols_str = request.form.get("excel_symbols", "")
-        symbols = [s.strip() for s in excel_symbols_str.split(",") if s.strip()]
-    # --- FIN ---
+    # 1️⃣ Llamada a la API
+    success, msg = yahoo_client.fetch_data(final_symbols)
+    if not success:
+        messages.append(msg)
+        return render_template("macd_results.html", results={}, messages=messages)
 
+    # 2️⃣ Calcular MACD
+    macd_calculator.calculate_macd(yahoo_client.get_data(), yahoo_client.get_status())
+    macd_data = macd_calculator.get_macd_data()
+    macd_status = macd_calculator.get_symbols_status()
 
-    if symbols:
-        symbols_manager.validate_symbols_from_list(symbols, truncate=True)
-        messages.extend(symbols_manager.get_messages())
-        final_symbols = symbols_manager.get_valid_symbols()
+    # 3️⃣ Clasificar señales
+    classifier.classify_all(macd_data, macd_status)
+    classified_signals = classifier.get_signals()
 
-    # Determinar si se puede continuar
-    can_continue = bool(final_symbols)
-    status_symbols = {}
-    macd_data = {}
-    macd_status = {}
+    # 4️⃣ Combinar resultados
+    results_manager.build_results(macd_status, classified_signals)
+    results = results_manager.get_all_results()
 
+    # 5️⃣ Renderizar resultados finales
+    return render_template("macd_results.html", results=results, messages=messages)
 
-    if can_continue and request.form.get("confirm_continue") == "1":
-        success, msg = yahoo_client.fetch_data(final_symbols)
-        if not success:
-            messages.append(msg)
-            can_continue = False
-        else:
-            # 1️⃣ Calcular MACD
-            macd_calculator.calculate_macd(yahoo_client.get_data(), yahoo_client.get_status())
-            macd_data = macd_calculator.get_macd_data()
-            macd_status = macd_calculator.get_symbols_status()
-
-            # 2️⃣ Clasificar señales
-            classifier = MACDSignalClassifier()  # nueva instancia
-            classifier.classify_all(macd_data, macd_status)
-            classified_signals = classifier.get_signals()
-
-            # 3️⃣ Combinar resultados con estados
-            results_manager = AnalysisResultsManager()  # nueva instancia
-            results_manager.build_results(macd_status, classified_signals)
-            results = results_manager.get_all_results()
-
-            # 4️⃣ Renderizar tabla final
-            return render_template("macd_results.html", results=results, messages=messages)
-
-
-    return render_template(
-        "result.html",
-        messages=messages,
-        symbols=final_symbols,
-        can_continue=can_continue
-    )
-
-
-def get_symbols():
-        # Obtiene la lista de símbolos a procesar, ya sea manual o Excel
-        manual_input = request.form.get("manual_symbols", "").strip()
-        excel_file = request.files.get("excel_file")
-        column_name = request.form.get("column_name", "").strip()
-
-        if manual_input and (not excel_file or excel_file.filename == ''):
-            # Lista manual
-            symbols = [s.strip().upper() for s in manual_input.split(",") if s.strip()]
-            return symbols, []
-
-        elif excel_file and excel_file.filename != '' and column_name:
-            # Archivo Excel
-            symbols, msg_excel = excel_handler.load_symbols(excel_file, column_name)
-            msgs = [msg_excel] if msg_excel else []
-            return symbols, msgs
-
-        else:
-            return [], ["Debe ingresar manualmente los símbolos o subir un archivo Excel válido."]
-
+# ------------------------------
+# Filtrado y exportación
+# ------------------------------
 @app.route("/filter_results", methods=["POST"])
 def filter_results():
-    # Recuperamos todos los resultados enviados desde la plantilla
     all_results_json = request.form.get("all_results")
     all_results = json.loads(all_results_json)
-
-    # Convertimos las claves de cada diccionario para compatibilidad con AnalysisResultsManager
-    for symbol, data in all_results.items():
-        all_results[symbol] = {"estado": data["estado"], "señal": data["señal"]}
-
-    # Recuperamos la opción de filtrado
     selected_filter = request.form.get("signal_filter", "TODO")
 
-    # Filtrar si no es TODO
     if selected_filter != "TODO":
         filtered_results = {
             symbol: data
@@ -144,12 +133,7 @@ def filter_results():
     else:
         filtered_results = all_results
 
-    return render_template(
-        "macd_results.html",
-        results=filtered_results,
-        messages=[],
-        selected_filter=selected_filter
-    )
+    return render_template("macd_results.html", results=filtered_results, messages=[])
 
 @app.route("/export_excel", methods=["POST"])
 def export_excel():
@@ -162,16 +146,28 @@ def export_excel():
     except json.JSONDecodeError:
         return "Error al procesar los resultados.", 400
 
-    # Usar ExcelHandler para exportar
     excel_handler = ExcelHandler(error_manager)
-    success, msg = excel_handler.export_results(results_dict, filename="resultados.xlsx")
-
+    success, file_name_or_msg = excel_handler.export_results(results_dict, filename=None)
     if not success:
-        return msg, 500
+        return file_name_or_msg, 500
 
-    # Enviar el archivo al usuario
-    return send_file("resultados.xlsx", as_attachment=True)
+    return send_file(file_name_or_msg, as_attachment=True)
 
+# ------------------------------
+# Ruta para test con datos artificiales
+# ------------------------------
+@app.route("/test_results", methods=["GET"])
+def test_results():
+    messages = ["Estos son resultados de prueba para ver la tabla, filtros y exportación."]
+    results = {
+        "AAPL": {"estado": "OK", "señal": "COMPRA"},
+        "GOOG": {"estado": "OK", "señal": "VENTA"},
+        "MSFT": {"estado": "DATOS_INSUFICIENTES", "señal": "NULO"},
+        "TSLA": {"estado": "OK", "señal": "COMPRA"},
+        "NFLX": {"estado": "OK", "señal": "NULO"},
+        "AMZN": {"estado": "DATOS_INSUFICIENTES", "señal": "NULO"},
+    }
+    return render_template("macd_results.html", results=results, messages=messages)
 
 if __name__ == "__main__":
     app.run(debug=True)

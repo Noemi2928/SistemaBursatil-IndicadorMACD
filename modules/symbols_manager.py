@@ -31,22 +31,35 @@ class SymbolsManager:
                 unique_symbols.append(s)
             else:
                 eliminated["duplicados"].append(s)
+        #if eliminated["duplicados"]:
+         #   self.messages.append(self.error_manager.get_message("VALIDATION_DUPLICATES"))
         if eliminated["duplicados"]:
-            self.messages.append(self.error_manager.get_message("VALIDATION_DUPLICATES"))
+            duplicates_str = ", ".join(eliminated["duplicados"])  # Convertir la lista a una cadena
+            self.messages.append(self.error_manager.get_message("VALIDATION_DUPLICATES", duplicates=duplicates_str))
 
         # filtrar solo letras
         only_letters = [s for s in unique_symbols if re.fullmatch(r'[A-Za-z]+', s)]
         invalid = set(unique_symbols) - set(only_letters)
+        #if invalid:
+         #   eliminated["invalidos"] = list(invalid)
+          #  self.messages.append(self.error_manager.get_message("VALIDATION_SYMBOLS"))
         if invalid:
             eliminated["invalidos"] = list(invalid)
-            self.messages.append(self.error_manager.get_message("VALIDATION_SYMBOLS"))
+            invalidos_str = ", ".join(eliminated["invalidos"])  # Convertir la lista a una cadena
+            self.messages.append(self.error_manager.get_message("VALIDATION_SYMBOLS", invalidos=invalidos_str))
 
-        # truncado si corresponde
+        # Truncado si corresponde
         if len(only_letters) > 20:
-          eliminated["exceso"] = only_letters[20:]
-          if truncate:
-              only_letters = only_letters[:20]
-              self.messages.append(self.error_manager.get_message("VALIDATION_TOO_MANY"))
+            eliminated["exceso"] = only_letters[20:]
+            if truncate:
+                only_letters = only_letters[:20]
+                self.messages.append(self.error_manager.get_message("VALIDATION_TOO_MANY"))
+            else:
+                # Caso manual: exceso de símbolos → mostrar mensaje sin truncar
+                exceso_str = ", ".join(eliminated["exceso"])
+                only_letters = []
+                self.messages.append(self.error_manager.get_message("VALIDATION_EXCESS_MANUAL", exceso=exceso_str))
+
 
         if not only_letters:
             self.messages.append(self.error_manager.get_message("VALIDATION_EMPTY"))

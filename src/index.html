@@ -4,50 +4,192 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   </head>
 
   <body>
-    <h1>Cargar símbolos bursátiles</h1>
-    <form method="post" action="/result" enctype="multipart/form-data">
-        <!-- Lista manual -->
-        <label for="manual_symbols">Ingresar símbolos manualmente (separados por coma):</label>
-        <textarea name="manual_symbols" id="manual_symbols" placeholder="AAPL, MSFT, TSLA"></textarea>
+    <h1>Análisis con MACD</h1>
+    <h2>Cargar símbolos bursátiles</h2>
 
-        <hr>
+    <div class="box">
+        <form id="mainForm" enctype="multipart/form-data">
+            <!-- Sección de ingreso manual -->
+            <div class="section" id="manualSection">
+                <label for="manual_symbols">Ingresar símbolos manualmente (separados por coma):</label>
+                <div class="textarea-wrapper">
+                    <textarea name="manual_symbols" id="manual_symbols" placeholder="AAPL, MSFT, TSLA"></textarea>
+                </div>
+            </div>
+            
+            <hr>
+            <!-- Sección de archivo Excel -->
+            <div class="section" id="excelSection">
+                <div class="file-upload-wrapper">
+                    <label for="excel_file" class="upload-button">Subir archivo Excel (.xlsx):</label>
+                    <input type="file" name="excel_file" id="excel_file" accept=".xlsx">
+                </div>
+                <span id="fileNameDisplay" class="file-name">Ningún archivo seleccionado</span>
+                <div class="column-name-wrapper">
+                    <label for="column_name">Nombre de la columna que contiene los símbolos:</label>
+                    <input type="text" name="column_name" id="column_name" placeholder="Ej: Símbolo">
+            </div>
+            <hr>
+            <!-- Botón de carga/validación -->
+            <div class="section">
+                <button type="submit">Cargar lista</button>
+            </div>
+        </form>
+    </div>
 
-        <!-- Archivo Excel -->
-        <label for="excel_file">Subir archivo Excel (.xlsx):</label>
-        <input type="file" name="excel_file" id="excel_file" accept=".xlsx">
-        <br>
-        <label for="column_name">Nombre de la columna que contiene los símbolos:</label>
-        <input type="text" name="column_name" id="column_name" placeholder="Ej: Símbolo">
+    <!-- Modal de resultados de validación -->
+    <div id="validationModal" class="modal">
+        <div class="modal-content">
+            <span id="closeModal" class="close">&times;</span>
+            <h2>Resultado de validación</h2>
+            <div id="validationMessages"></div>
+            <div id="validationSymbols"></div>
 
-        <hr>
+            <form id="continueForm" method="POST" action="/result">
+                <input type="hidden" name="final_symbols_json" id="final_symbols_json">
+                <button id="continueButtonWrapper" type="submit">Continuar con descarga de datos</button>
+            </form>
 
-        <button type="submit">Cargar y Validar</button>
-    </form>
-
+            <button id="cancelBtn">Volver atrás</button>
+        </div>
+    </div>
   </body>
 
   <script>
     const manualInput = document.getElementById('manual_symbols');
     const excelFile = document.getElementById('excel_file');
-    
+    const mainForm = document.getElementById('mainForm');
+
+    const modal = document.getElementById('validationModal');
+    const closeModal = document.getElementById('closeModal');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const validationMessages = document.getElementById('validationMessages');
+    const validationSymbols = document.getElementById('validationSymbols');
+    const finalSymbolsInput = document.getElementById('final_symbols_json');
+
+    // Exclusividad manual vs Excel
+    /*manualInput.addEventListener('input', () => {
+        excelFile.disabled = manualInput.value.trim().length > 0;
+    });*/
     manualInput.addEventListener('input', () => {
-        if (manualInput.value.trim().length > 0) {
-            excelFile.disabled = true;
+        const isManual = manualInput.value.trim().length > 0;
+        excelFile.disabled = isManual;
+
+        const excelLabel = document.querySelector('label[for="excel_file"]');
+        if (isManual) {
+            excelLabel.classList.add('disabled');
+            columnInput.style.background = "#eee";
+            columnInput.disabled = true;
         } else {
-            excelFile.disabled = false;
+            excelLabel.classList.remove('disabled');
+            columnInput.style.background = "white";
+            columnInput.disabled = false;
         }
     });
-    
+
+
+    /*excelFile.addEventListener('change', () => {
+        manualInput.disabled = excelFile.files.length > 0;
+    });*/
     excelFile.addEventListener('change', () => {
-        if (excelFile.files.length > 0) {
-            manualInput.disabled = true;
+        const hasFile = excelFile.files.length > 0;
+        manualInput.disabled = hasFile;
+
+        if (hasFile) {
+            manualInput.style.backgroundColor = "#eee";
         } else {
-            manualInput.disabled = false;
+            manualInput.style.backgroundColor = "white";
         }
     });
-    </script>    
+
+
+
+    // Interceptar envío del formulario para validar
+    mainForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(mainForm);
+        try {
+            const resp = await fetch('/validate_symbols', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await resp.json();
+
+            // Mostrar mensajes y símbolos en modal
+            validationMessages.innerHTML = '';
+            data.messages.forEach(msg => {
+                const p = document.createElement('p');
+                p.textContent = msg;
+                validationMessages.appendChild(p);
+            });
+
+            validationSymbols.innerHTML = '';
+            const continueWrapper = document.getElementById('continueButtonWrapper');
+
+            if (data.symbols.length > 0) {
+                // Mostrar texto antes de la lista
+                validationSymbols.textContent = "Lista validada: " + data.symbols.join(', ');
+
+                // Mostrar botón continuar
+                continueWrapper.style.display = 'block';
+            } else {
+                validationSymbols.textContent = ''; // No mostrar nada
+                continueWrapper.style.display = 'none'; // Ocultar botón
+            }
+
+
+
+            // Guardar símbolos válidos en input oculto del formulario de continuar
+            finalSymbolsInput.value = JSON.stringify(data.symbols);
+
+            // Abrir modal
+            modal.style.display = 'flex';
+        } catch (err) {
+            alert('Error al validar los símbolos.');
+            console.error(err);
+        }
+    });
+
+    // Cerrar modal
+    closeModal.onclick = cancelBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    // Cerrar modal si se hace click fuera del contenido
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    };
+    
+    const excelInput = document.getElementById('excel_file');
+    const columnInput = document.getElementById('column_name');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    
+    excelInput.addEventListener('change', () => {
+        if (excelInput.files.length > 0) {
+            fileNameDisplay.textContent = excelInput.files[0].name;
+            columnInput.required = true; // obligatorio si hay archivo
+            columnInput.oninvalid = function() {
+            this.setCustomValidity('Por favor, ingrese el nombre de la columna que contiene los símbolos');
+            }
+        } else {
+            fileNameDisplay.textContent = 'Ningún archivo seleccionado';
+            columnInput.required = false; // opcional si no hay archivo
+            columnInput.oninvalid = null;
+        }
+    });
+
+    columnInput.addEventListener('input', () => {
+        columnInput.setCustomValidity('');
+    });
+
+</script>
+    
 
 </html>

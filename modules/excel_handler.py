@@ -3,6 +3,7 @@
 # -----------------------------
 import pandas as pd
 from modules.error_manager import ErrorManager
+from datetime import datetime
 
 class ExcelHandler:
     def __init__(self, error_manager: ErrorManager):
@@ -11,7 +12,9 @@ class ExcelHandler:
     def load_symbols(self, excel_file, column_name: str, truncate: bool = True) -> tuple[list[str], str | None]:
         message = None
         try:
-            df = pd.read_excel(excel_file)
+            #df = pd.read_excel(excel_file)
+            df = pd.read_excel(excel_file, engine="openpyxl")
+
         except FileNotFoundError:
             message = self.error_manager.get_message("EXCEL_LOAD")
             return [], message
@@ -31,9 +34,13 @@ class ExcelHandler:
             symbols = symbols[:20]
             message = self.error_manager.get_message("EXCEL_TRUNCATE")
 
+        if not symbols:
+            message = self.error_manager.get_message("EXCEL_COLUMN_NULL", column=column_name)
+            return [], message
+
         return symbols, message
 
-    def export_results(self, results: dict, filename: str = "resultados.xlsx") -> tuple[bool, str | None]:
+    def export_results(self, results: dict, filename: str | None = None) -> tuple[bool, str | None]:
         """
         Exporta los resultados a un archivo Excel usando ErrorManager para los mensajes.
         results: { "AAPL": {"estado": "OK", "señal": "COMPRA"}, ... }
@@ -49,9 +56,14 @@ class ExcelHandler:
             df = pd.DataFrame.from_dict(results, orient="index")
             df.index.name = "Símbolo"
 
+            # Generar nombre de archivo dinámico si no se pasó
+            if not filename:
+                fecha_str = datetime.now().strftime("%Y%m%d")
+                filename = f"resultados_macd_{fecha_str}.xlsx"
+
             # Guardar en Excel
             df.to_excel(filename)
-            return True, None
+            return True, filename
 
         except PermissionError:
             message = self.error_manager.get_message("EXPORT_PERMISSION", filename=filename)

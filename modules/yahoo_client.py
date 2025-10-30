@@ -11,6 +11,7 @@ class YahooFinanceClient:
         self.error_manager = error_manager
 
     def _check_internet(self, host="8.8.8.8", port=53, timeout=3) -> bool:
+        #return False
         """Verifica conexión a Internet intentando abrir un socket."""
         try:
             socket.setdefaulttimeout(timeout)
@@ -58,13 +59,13 @@ class YahooFinanceClient:
 
                 # Validar que tenga columna Close y no esté vacía
                 if "Close" not in df.columns or df["Close"].dropna().empty:
-                    self.symbols_status[symbol] = "Error"
+                    self.symbols_status[symbol] = "Símbolo no encontrado o datos insuficientes"
                     continue
 
                 # Nos aseguramos de que tenga las columnas necesarias (OHLCV)
                 required_cols = {"Open", "High", "Low", "Close", "Volume"}
                 if not required_cols.issubset(set(df.columns)):
-                    self.symbols_status[symbol] = "Error"
+                    self.symbols_status[symbol] = "Símbolo no encontrado o datos insuficientes"
                     continue
 
                 # FILTRO: eliminar filas con Close vacío (día actual si no cerró)
