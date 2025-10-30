@@ -1,1 +1,11 @@
-.venv
+GEMINI.md
+devserver.sh
+
+.venv/
+.idx/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+.pytest_cache/
+*.log
