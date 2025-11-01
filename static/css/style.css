@@ -274,3 +274,52 @@ button:hover, .upload-button:hover {
 .error-actions button{
     font-size: 20px;
 }
+
+@media screen and (max-width: 600px) {
+    
+    /* 1. Ocultar la cabecera (thead) */
+    thead:not(#noMatchesRow) {
+      display: none;
+    }
+    
+    /* 2. Convertir la fila (tr) en una tarjeta/bloque */
+    tr:not(#noMatchesRow) {
+      display: block;
+      margin-bottom: 10px;
+      border: 1px solid #ccc; /* Bordes para separar las 'tarjetas' */
+    }
+    
+    /* 3. Convertir la celda de dato (td) en un bloque apilado */
+    td:not(#noMatchesRow) {
+      display: block;
+      text-align: right;
+      padding-left: 50%; /* Deja espacio para la etiqueta */
+      position: relative; /* Necesario para posicionar la etiqueta */
+      border-bottom: 1px solid #999; 
+    }
+  
+    /* 4. Mostrar el encabezado (data-label) dentro de la celda */
+    td:not(#noMatchesRow)::before {
+      /* Toma el valor del data-label del HTML */
+      content: attr(data-label); 
+      position: absolute;
+      left: 6px;
+      width: 45%;
+      white-space: nowrap; /* Evita que la etiqueta salte de línea */
+      text-align: left;
+      font-weight: bold; /* Destacar la etiqueta */
+    }
+
+    /* La fila especial debe volver a ser una fila normal */
+    #noMatchesRow {
+        display: table-row; /* Vuelve al comportamiento normal de fila */
+        border: none; /* Elimina el borde de 'tarjeta' */
+        margin-bottom: 0; /* Elimina el margen inferior */
+        text-align: center;
+    }
+    #noMatchesRow td {
+        display: table-cell; /* Vuelve al comportamiento normal de celda */
+        padding-left: 0; /* Elimina el padding usado para la etiqueta */
+      }
+    
+  }

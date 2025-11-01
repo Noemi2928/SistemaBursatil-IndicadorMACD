@@ -64,9 +64,9 @@
         <tbody>
             {% for symbol, data in results.items() %}
             <tr class="signal-row" data-signal="{{ data.señal }}">
-                <td>{{ symbol }}</td>
-                <td>{{ data.estado }}</td>
-                <td>{{ data.señal }}</td>
+                <td data-label="Simbolo">{{ symbol }}</td>
+                <td data-label="Estado">{{ data.estado }}</td>
+                <td data-label="Señal">{{ data.señal }}</td>
             </tr>
             {% endfor %}
             <tr id="noMatchesRow" style="display:none;">
