@@ -60,8 +60,8 @@ class YahooFinanceClient:
                 else:
                     df = data  # único ticker → DataFrame plano
 
-                # Validar que tenga columna Close y no esté vacía
-                if df.empty:
+                # Al menos un valor válido en Close
+                if "Close" not in df.columns or df["Close"].dropna().empty:
                     self.symbols_status[symbol] = "Símbolo inexistente"
                     continue
 
