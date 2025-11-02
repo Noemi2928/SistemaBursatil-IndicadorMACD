@@ -53,6 +53,9 @@ class YahooFinanceClient:
             try:
                 # Detectar si las columnas tienen MultiIndex (varios tickers) o no (único ticker)
                 if isinstance(data.columns, pd.MultiIndex):
+                    if symbol not in data.columns.levels[0]:
+                        self.symbols_status[symbol] = "Simbolo inexistente"
+                        continue
                     df = data[symbol]
                 else:
                     df = data  # único ticker → DataFrame plano
