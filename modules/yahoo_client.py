@@ -58,14 +58,14 @@ class YahooFinanceClient:
                     df = data  # único ticker → DataFrame plano
 
                 # Validar que tenga columna Close y no esté vacía
-                if "Close" not in df.columns or df["Close"].dropna().empty:
-                    self.symbols_status[symbol] = "Símbolo no encontrado o datos insuficientes"
+                if df.empty:
+                    self.symbols_status[symbol] = "Símbolo inexistente"
                     continue
 
                 # Nos aseguramos de que tenga las columnas necesarias (OHLCV)
                 required_cols = {"Open", "High", "Low", "Close", "Volume"}
                 if not required_cols.issubset(set(df.columns)):
-                    self.symbols_status[symbol] = "Símbolo no encontrado o datos insuficientes"
+                    self.symbols_status[symbol] = "Datos insuficientes"
                     continue
 
                 # FILTRO: eliminar filas con Close vacío (día actual si no cerró)
@@ -75,6 +75,11 @@ class YahooFinanceClient:
                 today = pd.Timestamp.now().normalize()
                 df = df[df.index < today]
 
+                #Validar cantidad mínima de días para MACD
+                min_macd_days = 30
+                if len(df) < min_macd_days:
+                    self.symbols_status[symbol]= "Datos insuficientes"
+                    continue
 
                 # Si todo va bien, guardamos los datos y estado OK
                 self.raw_data[symbol] = df
