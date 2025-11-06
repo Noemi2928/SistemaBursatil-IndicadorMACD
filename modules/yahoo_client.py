@@ -9,6 +9,12 @@ class YahooFinanceClient:
         self.raw_data = {}        # { "AAPL": DataFrame, ... }
         self.symbols_status = {}  # { "AAPL": "OK", "MSFT": "Error", ... }
         self.error_manager = error_manager
+        # --- Warm-up para inicializar la sesión de yfinance ---
+        try:
+            import yfinance as yf
+            yf.download("AAPL", period="1d", interval="1d", progress=False)
+        except Exception:
+            pass
 
     def _check_internet(self, host="8.8.8.8", port=53, timeout=3) -> bool:
         #return False
